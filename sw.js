@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'remuneraciones-v2.8.0';
+const CACHE_NAME = 'remuneraciones-v2.9.0';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -17,9 +17,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // En modo desarrollo o preview de AI, dejamos pasar todo a la red
-  // En producción (Netlify), el navegador gestionará la caché automáticamente
-  if (event.request.method !== 'GET') return;
+  // En Netlify dejamos que la red maneje las peticiones de módulos para evitar el error 404
+  if (event.request.method !== 'GET' || event.request.url.includes('esm.sh')) return;
   
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))

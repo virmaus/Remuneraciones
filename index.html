@@ -24,8 +24,8 @@
     "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
     "react-router-dom": "https://esm.sh/react-router-dom@6.26.2?external=react,react-dom",
     "@google/genai": "https://esm.sh/@google/genai@1.30.2",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
@@ -34,21 +34,18 @@
     <div id="root"></div>
 
     <script>
-        // Manejo silencioso del registro del SW
+        // Registro del Service Worker optimizado para Netlify
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Usamos una ruta relativa estricta para Netlify
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA Lista para instalación'))
-                    .catch(err => {
-                        console.warn('Registro de SW omitido en este entorno (es normal en modo preview):', err.message);
-                    });
+                    .then(reg => console.log('PWA: Service Worker registrado'))
+                    .catch(err => console.warn('PWA: Error en el registro del SW:', err));
             });
         }
     </script>
 
     <script type="module">
-        // Importación directa del archivo TSX para evitar problemas de resolución de rutas
+        // Cargamos el punto de entrada de la aplicación
         import './index.tsx';
     </script>
 </body>
