@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MENU_ITEMS } from '../constants.tsx';
-import { ChevronDown, ChevronRight, Menu, MonitorDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Menu, Download, Github, RefreshCw } from 'lucide-react';
 import { usePayroll } from '../App.tsx';
 
 interface SidebarProps {
@@ -12,8 +12,9 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
   const location = useLocation();
-  const { isInstallable, installApp } = usePayroll();
+  const { updateAvailable, checkUpdates, appVersion } = usePayroll();
   const [expandedItems, setExpandedItems] = useState<string[]>(['archivo', 'movimientos']);
+  const [isChecking, setIsChecking] = useState(false);
 
   const toggleExpand = (id: string) => {
     setExpandedItems(prev => 
@@ -21,9 +22,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
     );
   };
 
+  const handleManualCheck = async () => {
+    setIsChecking(true);
+    await checkUpdates();
+    setTimeout(() => setIsChecking(false), 1000);
+  };
+
   return (
     <>
-      {/* Mobile Toggle */}
       <button 
         onClick={toggle}
         className="fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md lg:hidden"
@@ -36,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
         bg-white border-r border-gray-200 transition-all duration-300 flex flex-col z-40 h-full overflow-hidden
       `}>
         <div className="p-6 flex items-center gap-3 shrink-0">
-          <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center text-white font-bold shrink-0">
+          <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center text-white font-bold shrink-0 shadow-lg">
             T
           </div>
           {isOpen && <span className="font-bold text-emerald-800 text-lg tracking-tight">TRANSTECNIA</span>}
@@ -96,19 +102,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-100 space-y-3 shrink-0">
-          {isInstallable && isOpen && (
-            <button 
-              onClick={installApp}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 mb-2"
+          {updateAvailable && isOpen && (
+            <a 
+              href="https://github.com/virmaus/Remuneraciones"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-lg text-xs font-bold transition-all shadow-lg animate-bounce"
             >
-              <MonitorDown size={16} />
-              Instalar Localmente
-            </button>
+              <Download size={16} />
+              Bajar Nueva Versión
+            </a>
           )}
           
-          <div className="bg-emerald-600 p-3 rounded-lg text-white text-center">
-            <p className="text-xs opacity-80 uppercase font-semibold">Soporte 24/7</p>
-            <p className="text-sm font-bold">Remuneraciones Digital</p>
+          <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Versión Actual</span>
+              <button 
+                onClick={handleManualCheck}
+                disabled={isChecking}
+                className="text-gray-400 hover:text-emerald-600 transition-colors"
+              >
+                <RefreshCw size={12} className={isChecking ? 'animate-spin' : ''} />
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Github size={14} className="text-gray-400" />
+              <span className="text-xs font-bold text-gray-700">v{appVersion} - Estable</span>
+            </div>
           </div>
         </div>
       </div>

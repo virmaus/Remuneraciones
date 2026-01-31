@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'remuneraciones-v2.3';
+const CACHE_NAME = 'remuneraciones-v2.6-local';
 const ASSETS = [
   './',
   './index.html',
@@ -26,8 +26,19 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Estrategia: Network First, falling back to cache
+  // Estrategia: Stale-While-Revalidate
+  // Sirve desde caché inmediatamente para velocidad offline, pero actualiza en segundo plano si hay red.
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(e.request).then((response) => {
+        const fetchPromise = fetch(e.request).then((networkResponse) => {
+          if (e.request.method === 'GET' && networkResponse.ok) {
+            cache.put(e.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(() => null);
+        return response || fetchPromise;
+      });
+    })
   );
 });

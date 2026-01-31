@@ -1,5 +1,5 @@
 
-import React, { useState, createContext, useContext, useEffect, Suspense } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.tsx';
 import TopBar from './components/TopBar.tsx';
@@ -16,13 +16,14 @@ import MonthlyMovementView from './views/MonthlyMovement.tsx';
 import PayrollCalculation from './views/PayrollCalculation.tsx';
 import PayslipList from './views/PayslipList.tsx';
 import ReportsView from './views/Reports.tsx';
-import AIHelper from './components/AIHelper.tsx';
-import { CheckCircle, XCircle, Database, RefreshCw, MonitorDown } from 'lucide-react';
+import { CheckCircle, XCircle, Database, RefreshCw, AlertTriangle, Download } from 'lucide-react';
 import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants.tsx';
 import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
 import { getAllData } from './db.ts';
 
-const APP_VERSION = "2.4.0-STABLE";
+// VERSIONAMIENTO SEMÁNTICO
+const APP_VERSION = "2.6.0"; 
+const GITHUB_REPO_URL = "https://github.com/virmaus/Remuneraciones";
 
 interface Toast {
   id: number;
@@ -52,8 +53,9 @@ interface PayrollContextType {
   currentPeriod: PayrollPeriod;
   setCurrentPeriod: (period: PayrollPeriod) => void;
   dbStatus: 'connecting' | 'connected' | 'error' | 'offline';
-  installApp: () => void;
-  isInstallable: boolean;
+  updateAvailable: boolean;
+  checkUpdates: () => Promise<void>;
+  appVersion: string;
 }
 
 const PayrollContext = createContext<PayrollContextType | undefined>(undefined);
@@ -68,8 +70,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [dbStatus, setDbStatus] = useState<'connecting' | 'connected' | 'error' | 'offline'>('connecting');
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const [workers, setWorkers] = useState<Worker[]>(MOCK_WORKERS as any);
   const [company, setCompany] = useState<Company>(MOCK_COMPANY);
@@ -81,29 +82,28 @@ const App: React.FC = () => {
   const [currentPeriod, setCurrentPeriodState] = useState<PayrollPeriod>(() => {
     try {
       const saved = localStorage.getItem('payroll_period');
-      return saved ? JSON.parse(saved) : { month: 7, year: 2023 };
+      return saved ? JSON.parse(saved) : { month: new Date().getMonth(), year: new Date().getFullYear() };
     } catch {
-      return { month: 7, year: 2023 };
+      return { month: 0, year: 2024 };
     }
   });
 
-  useEffect(() => {
-    const installHandler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-    window.addEventListener('beforeinstallprompt', installHandler);
-    return () => window.removeEventListener('beforeinstallprompt', installHandler);
-  }, []);
-
-  const installApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstallable(false);
-      setDeferredPrompt(null);
+  // Función para verificar actualizaciones en GitHub
+  const checkUpdates = async () => {
+    if (!navigator.onLine) return;
+    try {
+      // Intentamos leer el App.tsx remoto para buscar la constante APP_VERSION
+      const response = await fetch('https://raw.githubusercontent.com/virmaus/Remuneraciones/main/App.tsx');
+      if (response.ok) {
+        const content = await response.text();
+        const match = content.match(/const APP_VERSION = "(.*?)"/);
+        if (match && match[1] !== APP_VERSION) {
+          setUpdateAvailable(true);
+          showToast("¡Nueva versión disponible en GitHub!", "info");
+        }
+      }
+    } catch (e) {
+      console.warn("No se pudo verificar actualizaciones (posible falta de internet o CORS)");
     }
   };
 
@@ -133,6 +133,7 @@ const App: React.FC = () => {
       }
     };
     loadDB();
+    checkUpdates(); // Verificar al iniciar
   }, []);
 
   const setCurrentPeriod = (period: PayrollPeriod) => {
@@ -143,7 +144,7 @@ const App: React.FC = () => {
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
 
   return (
@@ -151,7 +152,8 @@ const App: React.FC = () => {
       showToast, workers, setWorkers, company, setCompany, 
       costCenters, setCostCenters, contractTypes, setContractTypes,
       terminationCauses, setTerminationCauses, concepts, setConcepts,
-      currentPeriod, setCurrentPeriod, dbStatus, installApp, isInstallable
+      currentPeriod, setCurrentPeriod, dbStatus, 
+      updateAvailable, checkUpdates, appVersion: APP_VERSION
     }}>
       <Router>
         <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -160,23 +162,6 @@ const App: React.FC = () => {
             <TopBar />
             <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
               <div className="max-w-7xl mx-auto">
-                {isInstallable && (
-                  <div className="mb-6 p-4 bg-blue-600 rounded-xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg animate-in slide-in-from-top duration-500">
-                    <div className="flex items-center gap-3">
-                      <MonitorDown size={24} />
-                      <div>
-                        <h4 className="font-bold">Instalar Transtecnia Remuneraciones</h4>
-                        <p className="text-sm opacity-90">Ejecuta la aplicación de forma nativa en tu computadora para mayor rapidez.</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={installApp}
-                      className="whitespace-nowrap bg-white text-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors"
-                    >
-                      Instalar Ahora
-                    </button>
-                  </div>
-                )}
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/archivo/empresa" element={<CompanyForm />} />
@@ -196,26 +181,32 @@ const App: React.FC = () => {
               </div>
             </main>
           </div>
-          <AIHelper />
           
           {/* Status Bar */}
           <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
             <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
                <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></div>
-               <span className="text-gray-500 flex items-center gap-1 uppercase">
-                 <Database size={10}/> {dbStatus === 'offline' ? 'ESTADO: MEMORIA' : 'ESTADO: INDEXEDDB'}
-               </span>
+               <span className="text-gray-500 uppercase tracking-tighter">DATA: LOCAL_STORAGE</span>
             </div>
             <div className="flex items-center gap-2 text-emerald-600">
-               <RefreshCw size={10} className={dbStatus === 'connecting' ? 'animate-spin' : ''} />
-               <span className="bg-emerald-50 px-2 py-0.5 rounded-md uppercase">{APP_VERSION}</span>
+               <span className="bg-emerald-50 px-2 py-0.5 rounded-md uppercase">V{APP_VERSION}</span>
             </div>
+            {updateAvailable && (
+              <a 
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-0.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <AlertTriangle size={10} /> ACTUALIZACIÓN DISPONIBLE
+              </a>
+            )}
           </div>
 
           <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
             {toasts.map(t => (
-              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
-                {t.type === 'success' ? <CheckCircle size={18} /> : <XCircle size={18} />}
+              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : t.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                {t.type === 'success' ? <CheckCircle size={18} /> : t.type === 'info' ? <Download size={18} /> : <XCircle size={18} />}
                 <span className="text-sm font-medium">{t.message}</span>
               </div>
             ))}

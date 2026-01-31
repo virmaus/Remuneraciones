@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remuneraciones Digital - Transtecnia</title>
+    <title>Transtecnia Remuneraciones - Sistema Local</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#059669">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,15 +12,15 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f9fafb; margin: 0; padding: 0; }
         #root { min-height: 100vh; }
-        #error-boundary {
+        #local-server-warning {
             display: none;
             position: fixed;
             inset: 0;
             background: #fff;
-            z-index: 9999;
+            z-index: 10000;
             padding: 40px;
-            color: #991b1b;
-            overflow-y: auto;
+            text-align: center;
+            color: #374151;
         }
     </style>
 <script type="importmap">
@@ -32,34 +32,39 @@
     "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
     "lucide-react": "https://esm.sh/lucide-react@0.454.0?external=react",
     "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
-    "@google/genai": "https://esm.sh/@google/genai@0.21.0",
     "react-router-dom": "https://esm.sh/react-router-dom@6.26.2?external=react,react-dom",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0"
   }
 }
 </script>
 </head>
 <body>
-    <div id="error-boundary">
-        <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 16px;">Error de Carga de Módulos</h1>
-        <div id="error-message" style="font-family: monospace; background: #fef2f2; padding: 20px; border-radius: 8px; border: 1px solid #fee2e2;"></div>
-        <button onclick="window.location.reload(true)" style="margin-top: 20px; background: #059669; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold;">Reintentar carga limpia</button>
+    <!-- Aviso de seguridad de navegadores para archivos locales -->
+    <div id="local-server-warning">
+        <div style="max-width: 500px; margin: 0 auto; border: 2px solid #e5e7eb; padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+            <div style="font-size: 50px; margin-bottom: 20px;">🚀</div>
+            <h2 style="font-weight: 800; font-size: 20px; margin-bottom: 10px;">Casi listo para iniciar</h2>
+            <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">Los navegadores modernos no permiten ejecutar aplicaciones complejas directamente desde "C:/...".</p>
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 10px; margin: 20px 0; font-family: monospace; font-size: 12px; text-align: left;">
+                1. Abre una terminal en esta carpeta.<br>
+                2. Ejecuta: <b>npx serve .</b><br>
+                3. Abre la dirección que te indique (ej: localhost:3000)
+            </div>
+            <p style="font-size: 12px; color: #9ca3af;">Si ya estás usando un servidor, ignora este mensaje.</p>
+        </div>
     </div>
 
     <div id="root"></div>
 
     <script>
-        window.addEventListener('error', function(e) {
-            if (e.message.includes('import') || e.message.includes('module') || e.message.includes('URL')) {
-                const boundary = document.getElementById('error-boundary');
-                const msg = document.getElementById('error-message');
-                if (boundary && msg) {
-                    boundary.style.display = 'block';
-                    msg.textContent = e.message;
-                }
-            }
-        });
+        // Si se abre como archivo directo, mostrar advertencia instructiva
+        if (window.location.protocol === 'file:') {
+            document.getElementById('local-server-warning').style.display = 'flex';
+            document.getElementById('local-server-warning').style.alignItems = 'center';
+            document.getElementById('local-server-warning').style.justifyContent = 'center';
+        }
     </script>
 
     <script type="module">
