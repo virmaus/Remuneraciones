@@ -14,14 +14,22 @@ const AIHelper: React.FC = () => {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Verificación de API KEY para evitar crash
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      setMessages(prev => [...prev, { role: 'user', text: input }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'El asistente IA no está configurado (Falta API KEY). Sin embargo, el resto de la aplicación funciona normalmente.' }]);
+      setInput('');
+      return;
+    }
+
     const userText = input;
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userText }]);
     setIsLoading(true);
 
     try {
-      // Must use named parameter for apiKey
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: userText,

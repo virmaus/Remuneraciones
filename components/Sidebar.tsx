@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MENU_ITEMS } from '../constants';
-import { ChevronDown, ChevronRight, X, Menu } from 'lucide-react';
+import { MENU_ITEMS } from '../constants.tsx';
+import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -54,10 +54,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
                     ${isActive ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'}
                   `}
                 >
-                  <Link to={item.subItems ? '#' : `/${item.id}`} className="flex items-center gap-3 flex-1">
-                    {item.icon}
-                    {isOpen && <span className="font-medium text-sm">{item.label}</span>}
-                  </Link>
+                  {item.subItems ? (
+                    <div className="flex items-center gap-3 flex-1">
+                      {item.icon}
+                      {isOpen && <span className="font-medium text-sm">{item.label}</span>}
+                    </div>
+                  ) : (
+                    <Link to={`/${item.id}`} className="flex items-center gap-3 flex-1">
+                      {item.icon}
+                      {isOpen && <span className="font-medium text-sm">{item.label}</span>}
+                    </Link>
+                  )}
                   {item.subItems && isOpen && (
                     isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
                   )}

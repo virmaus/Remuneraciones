@@ -1,26 +1,27 @@
 
-const CACHE_NAME = 'contador-pro-v2'; // Incrementado para forzar refresco de cache
+const CACHE_NAME = 'remuneraciones-pro-v3';
 const ASSETS = [
   './',
   './index.html',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
+  'https://cdn.tailwindcss.com'
 ];
 
-// Evento de Instalación: Forzar que el nuevo worker sea el activo
+// Instalación inmediata
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); 
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      // Usamos addAll de forma individual para evitar que un fallo bloquee todo
+      return Promise.allSettled(ASSETS.map(url => cache.add(url)));
+    })
   );
 });
 
-// Evento de Activación: Tomar control de las pestañas inmediatamente
+// Activación y limpieza de caches antiguos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     Promise.all([
       self.clients.claim(),
-      // Limpiar caches antiguos si existen
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
@@ -34,10 +35,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Estrategia: Network-First con fallback a Cache para asegurar actualizaciones
 self.addEventListener('fetch', (event) => {
+  // Solo interceptar peticiones GET
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        // Clonar y guardar en caché si la respuesta es válida
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Si falla la red, intentar desde el caché
+        return caches.match(event.request);
+      })
   );
 });

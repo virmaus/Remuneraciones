@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { LayoutDashboard, Users, FileText, Database, PieChart, HelpCircle, Truck, Calculator } from 'lucide-react';
-import { CostCenter, ContractType, TerminationCause, PayrollConcept } from './types';
+import { LayoutDashboard, Users, FileText, Database, PieChart, Calculator, Truck } from 'lucide-react';
+import { CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
 
 export const MENU_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },

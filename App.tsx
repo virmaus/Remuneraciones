@@ -1,28 +1,28 @@
 
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
-import TopBar from './components/TopBar';
-import Dashboard from './views/Dashboard';
-import CompanyForm from './views/CompanyForm';
-import WorkerList from './views/WorkerList';
-import Centralization from './views/Centralization';
-import MonthlyParameters from './views/MonthlyParameters';
-import CostCenterList from './views/CostCenterList';
-import ContractTypeList from './views/ContractTypeList';
-import TerminationCauseList from './views/TerminationCauseList';
-import ConceptList from './views/ConceptList';
-import MonthlyMovementView from './views/MonthlyMovement';
-import PayrollCalculation from './views/PayrollCalculation';
-import PayslipList from './views/PayslipList';
-import ReportsView from './views/Reports';
-import AIHelper from './components/AIHelper';
+import Sidebar from './components/Sidebar.tsx';
+import TopBar from './components/TopBar.tsx';
+import Dashboard from './views/Dashboard.tsx';
+import CompanyForm from './views/CompanyForm.tsx';
+import WorkerList from './views/WorkerList.tsx';
+import Centralization from './views/Centralization.tsx';
+import MonthlyParameters from './views/MonthlyParameters.tsx';
+import CostCenterList from './views/CostCenterList.tsx';
+import ContractTypeList from './views/ContractTypeList.tsx';
+import TerminationCauseList from './views/TerminationCauseList.tsx';
+import ConceptList from './views/ConceptList.tsx';
+import MonthlyMovementView from './views/MonthlyMovement.tsx';
+import PayrollCalculation from './views/PayrollCalculation.tsx';
+import PayslipList from './views/PayslipList.tsx';
+import ReportsView from './views/Reports.tsx';
+import AIHelper from './components/AIHelper.tsx';
 import { CheckCircle, XCircle, Info, Database, RefreshCw } from 'lucide-react';
-import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants';
-import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types';
-import { getAllData, saveData } from './db';
+import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants.tsx';
+import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
+import { getAllData, saveData } from './db.ts';
 
-const APP_VERSION = "2.1.0-PRO";
+const APP_VERSION = "2.2.0-STABLE";
 
 interface Toast {
   id: number;
@@ -51,7 +51,7 @@ interface PayrollContextType {
   setConcepts: React.Dispatch<React.SetStateAction<PayrollConcept[]>>;
   currentPeriod: PayrollPeriod;
   setCurrentPeriod: (period: PayrollPeriod) => void;
-  dbStatus: 'connecting' | 'connected' | 'error';
+  dbStatus: 'connecting' | 'connected' | 'error' | 'offline';
 }
 
 const PayrollContext = createContext<PayrollContextType | undefined>(undefined);
@@ -65,67 +65,62 @@ export const usePayroll = () => {
 const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [dbStatus, setDbStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
+  const [dbStatus, setDbStatus] = useState<'connecting' | 'connected' | 'error' | 'offline'>('connecting');
 
-  // App State
-  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>(MOCK_WORKERS as any);
   const [company, setCompany] = useState<Company>(MOCK_COMPANY);
-  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
-  const [contractTypes, setContractTypes] = useState<ContractType[]>([]);
-  const [terminationCauses, setTerminationCauses] = useState<TerminationCause[]>([]);
-  const [concepts, setConcepts] = useState<PayrollConcept[]>([]);
+  const [costCenters, setCostCenters] = useState<CostCenter[]>(MOCK_COST_CENTERS);
+  const [contractTypes, setContractTypes] = useState<ContractType[]>(MOCK_CONTRACT_TYPES);
+  const [terminationCauses, setTerminationCauses] = useState<TerminationCause[]>(MOCK_TERMINATION_CAUSES);
+  const [concepts, setConcepts] = useState<PayrollConcept[]>(MOCK_CONCEPTS);
   
   const [currentPeriod, setCurrentPeriodState] = useState<PayrollPeriod>(() => {
-    const saved = localStorage.getItem('payroll_period');
-    return saved ? JSON.parse(saved) : { month: 7, year: 2023 };
+    try {
+      const saved = localStorage.getItem('payroll_period');
+      return saved ? JSON.parse(saved) : { month: 7, year: 2023 };
+    } catch {
+      return { month: 7, year: 2023 };
+    }
   });
 
-  // Load from IndexedDB on Init
   useEffect(() => {
     const loadDB = async () => {
       try {
+        setDbStatus('connecting');
         const [w, c, cc, ct, tc, cp] = await Promise.all([
-          getAllData('workers'),
-          getAllData('company'),
-          getAllData('costCenters'),
-          getAllData('contractTypes'),
-          getAllData('terminationCauses'),
-          getAllData('concepts')
+          getAllData('workers').catch(() => []),
+          getAllData('company').catch(() => []),
+          getAllData('costCenters').catch(() => []),
+          getAllData('contractTypes').catch(() => []),
+          getAllData('terminationCauses').catch(() => []),
+          getAllData('concepts').catch(() => [])
         ]);
 
-        if (w.length > 0) setWorkers(w); else setWorkers(MOCK_WORKERS as any);
-        if (c.length > 0) setCompany(c[0]);
-        if (cc.length > 0) setCostCenters(cc); else setCostCenters(MOCK_COST_CENTERS);
-        if (ct.length > 0) setContractTypes(ct); else setContractTypes(MOCK_CONTRACT_TYPES);
-        if (tc.length > 0) setTerminationCauses(tc); else setTerminationCauses(MOCK_TERMINATION_CAUSES);
-        if (cp.length > 0) setConcepts(cp); else setConcepts(MOCK_CONCEPTS);
+        if (w?.length) setWorkers(w);
+        if (c?.length) setCompany(c[0]);
+        if (cc?.length) setCostCenters(cc);
+        if (ct?.length) setContractTypes(ct);
+        if (tc?.length) setTerminationCauses(tc);
+        if (cp?.length) setConcepts(cp);
 
         setDbStatus('connected');
       } catch (err) {
-        console.error('DB Init error:', err);
-        setDbStatus('error');
+        console.warn('Iniciando en modo memoria (sin DB local)');
+        setDbStatus('offline');
       }
     };
     loadDB();
   }, []);
 
-  // Sync state changes to DB
-  useEffect(() => { if (dbStatus === 'connected') workers.forEach(w => saveData('workers', w)); }, [workers]);
-  useEffect(() => { if (dbStatus === 'connected') saveData('company', company); }, [company]);
-  useEffect(() => { if (dbStatus === 'connected') costCenters.forEach(cc => saveData('costCenters', cc)); }, [costCenters]);
-  useEffect(() => { if (dbStatus === 'connected') concepts.forEach(cp => saveData('concepts', cp)); }, [concepts]);
-
   const setCurrentPeriod = (period: PayrollPeriod) => {
     setCurrentPeriodState(period);
-    localStorage.setItem('payroll_period', JSON.stringify(period));
+    try { localStorage.setItem('payroll_period', JSON.stringify(period)); } catch {}
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
   return (
@@ -141,7 +136,7 @@ const App: React.FC = () => {
           <div className="flex-1 flex flex-col min-w-0">
             <TopBar />
             <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-              <div className="max-w-7xl mx-auto space-y-6">
+              <div className="max-w-7xl mx-auto">
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/archivo/empresa" element={<CompanyForm />} />
@@ -163,39 +158,29 @@ const App: React.FC = () => {
           </div>
           <AIHelper />
           
-          {/* Status Bar Floating with Versioning */}
           <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
             <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
-               <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
-               <span className="text-gray-500 flex items-center gap-1 uppercase"><Database size={10}/> DB Local</span>
+               <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></div>
+               <span className="text-gray-500 flex items-center gap-1 uppercase">
+                 <Database size={10}/> {dbStatus === 'offline' ? 'CACHE RAM' : 'DB LOCAL ACTIVA'}
+               </span>
             </div>
             <div className="flex items-center gap-2 text-emerald-600">
-               <RefreshCw size={10} className="animate-spin-slow" />
-               <span className="bg-emerald-50 px-2 py-0.5 rounded-md">VER {APP_VERSION}</span>
+               <RefreshCw size={10} className={dbStatus === 'connecting' ? 'animate-spin' : ''} />
+               <span className="bg-emerald-50 px-2 py-0.5 rounded-md uppercase">{APP_VERSION}</span>
             </div>
           </div>
 
           <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
-            {toasts.map(toast => (
-              <div key={toast.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : toast.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                {toast.type === 'success' && <CheckCircle size={18} />}
-                {toast.type === 'error' && <XCircle size={18} />}
-                {toast.type === 'info' && <Info size={18} />}
-                <span className="text-sm font-medium">{toast.message}</span>
+            {toasts.map(t => (
+              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                {t.type === 'success' ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                <span className="text-sm font-medium">{t.message}</span>
               </div>
             ))}
           </div>
         </div>
       </Router>
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-      `}</style>
     </PayrollContext.Provider>
   );
 };
