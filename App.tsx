@@ -16,13 +16,12 @@ import MonthlyMovementView from './views/MonthlyMovement.tsx';
 import PayrollCalculation from './views/PayrollCalculation.tsx';
 import PayslipList from './views/PayslipList.tsx';
 import ReportsView from './views/Reports.tsx';
-import { CheckCircle, XCircle, Database, RefreshCw, AlertTriangle, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Database, RefreshCw, AlertTriangle, Download, Monitor } from 'lucide-react';
 import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants.tsx';
 import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
 import { getAllData } from './db.ts';
 
-// VERSIONAMIENTO SEMÁNTICO
-const APP_VERSION = "2.6.0"; 
+const APP_VERSION = "2.6.5"; 
 const GITHUB_REPO_URL = "https://github.com/virmaus/Remuneraciones";
 
 interface Toast {
@@ -56,6 +55,8 @@ interface PayrollContextType {
   updateAvailable: boolean;
   checkUpdates: () => Promise<void>;
   appVersion: string;
+  installApp: () => void;
+  isInstallable: boolean;
 }
 
 const PayrollContext = createContext<PayrollContextType | undefined>(undefined);
@@ -71,6 +72,8 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [dbStatus, setDbStatus] = useState<'connecting' | 'connected' | 'error' | 'offline'>('connecting');
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
 
   const [workers, setWorkers] = useState<Worker[]>(MOCK_WORKERS as any);
   const [company, setCompany] = useState<Company>(MOCK_COMPANY);
@@ -88,22 +91,40 @@ const App: React.FC = () => {
     }
   });
 
-  // Función para verificar actualizaciones en GitHub
+  // Manejo de instalación PWA
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const installApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    }
+  };
+
   const checkUpdates = async () => {
     if (!navigator.onLine) return;
     try {
-      // Intentamos leer el App.tsx remoto para buscar la constante APP_VERSION
-      const response = await fetch('https://raw.githubusercontent.com/virmaus/Remuneraciones/main/App.tsx');
+      const response = await fetch('https://raw.githubusercontent.com/virmaus/Remuneraciones/main/App.tsx', { cache: 'no-store' });
       if (response.ok) {
         const content = await response.text();
         const match = content.match(/const APP_VERSION = "(.*?)"/);
         if (match && match[1] !== APP_VERSION) {
           setUpdateAvailable(true);
-          showToast("¡Nueva versión disponible en GitHub!", "info");
         }
       }
     } catch (e) {
-      console.warn("No se pudo verificar actualizaciones (posible falta de internet o CORS)");
+      console.warn("Error verificando versión remota.");
     }
   };
 
@@ -133,7 +154,7 @@ const App: React.FC = () => {
       }
     };
     loadDB();
-    checkUpdates(); // Verificar al iniciar
+    checkUpdates();
   }, []);
 
   const setCurrentPeriod = (period: PayrollPeriod) => {
@@ -153,7 +174,8 @@ const App: React.FC = () => {
       costCenters, setCostCenters, contractTypes, setContractTypes,
       terminationCauses, setTerminationCauses, concepts, setConcepts,
       currentPeriod, setCurrentPeriod, dbStatus, 
-      updateAvailable, checkUpdates, appVersion: APP_VERSION
+      updateAvailable, checkUpdates, appVersion: APP_VERSION,
+      installApp, isInstallable
     }}>
       <Router>
         <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -182,31 +204,25 @@ const App: React.FC = () => {
             </main>
           </div>
           
-          {/* Status Bar */}
           <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
             <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
                <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></div>
-               <span className="text-gray-500 uppercase tracking-tighter">DATA: LOCAL_STORAGE</span>
+               <span className="text-gray-500 uppercase">OFFLINE OK</span>
             </div>
             <div className="flex items-center gap-2 text-emerald-600">
-               <span className="bg-emerald-50 px-2 py-0.5 rounded-md uppercase">V{APP_VERSION}</span>
+               <span className="bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-tight font-black">v{APP_VERSION}</span>
             </div>
             {updateAvailable && (
-              <a 
-                href={GITHUB_REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-0.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <AlertTriangle size={10} /> ACTUALIZACIÓN DISPONIBLE
+              <a href={GITHUB_REPO_URL} target="_blank" className="flex items-center gap-1.5 px-3 py-0.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 animate-pulse">
+                <AlertTriangle size={10} /> REVISAR REPOSITORIO
               </a>
             )}
           </div>
 
           <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
             {toasts.map(t => (
-              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : t.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
-                {t.type === 'success' ? <CheckCircle size={18} /> : t.type === 'info' ? <Download size={18} /> : <XCircle size={18} />}
+              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                {t.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
                 <span className="text-sm font-medium">{t.message}</span>
               </div>
             ))}

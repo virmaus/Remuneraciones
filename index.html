@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transtecnia Remuneraciones - Sistema Local</title>
+    <title>Contador Pro - Sistema de Remuneraciones</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#059669">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -41,25 +41,21 @@
 </script>
 </head>
 <body>
-    <!-- Aviso de seguridad de navegadores para archivos locales -->
     <div id="local-server-warning">
         <div style="max-width: 500px; margin: 0 auto; border: 2px solid #e5e7eb; padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
             <div style="font-size: 50px; margin-bottom: 20px;">🚀</div>
-            <h2 style="font-weight: 800; font-size: 20px; margin-bottom: 10px;">Casi listo para iniciar</h2>
-            <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">Los navegadores modernos no permiten ejecutar aplicaciones complejas directamente desde "C:/...".</p>
+            <h2 style="font-weight: 800; font-size: 20px; margin-bottom: 10px;">Modo Local Detectado</h2>
+            <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">Para una experiencia óptima y permitir la instalación en el escritorio, usa un servidor local o sube la app a Netlify/Vercel.</p>
             <div style="background: #f3f4f6; padding: 15px; border-radius: 10px; margin: 20px 0; font-family: monospace; font-size: 12px; text-align: left;">
-                1. Abre una terminal en esta carpeta.<br>
-                2. Ejecuta: <b>npx serve .</b><br>
-                3. Abre la dirección que te indique (ej: localhost:3000)
+                <b>Sugerencia:</b> Ejecuta <b>npx serve .</b> en esta carpeta.
             </div>
-            <p style="font-size: 12px; color: #9ca3af;">Si ya estás usando un servidor, ignora este mensaje.</p>
+            <button onclick="document.getElementById('local-server-warning').style.display='none'" style="background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Entendido</button>
         </div>
     </div>
 
     <div id="root"></div>
 
     <script>
-        // Si se abre como archivo directo, mostrar advertencia instructiva
         if (window.location.protocol === 'file:') {
             document.getElementById('local-server-warning').style.display = 'flex';
             document.getElementById('local-server-warning').style.alignItems = 'center';
