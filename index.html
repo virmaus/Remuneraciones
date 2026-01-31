@@ -18,7 +18,7 @@
             padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; font-family: monospace;
         }
-        .error-card { background: #fee2e2; border: 1px solid #ef4444; padding: 1.5rem; rounded: 0.5rem; max-width: 600px; }
+        .error-card { background: #fee2e2; border: 1px solid #ef4444; padding: 1.5rem; border-radius: 0.5rem; max-width: 600px; }
         @media (display-mode: standalone) { .no-standalone { display: none; } }
     </style>
 <script type="importmap">
@@ -45,8 +45,8 @@
             <h2 style="color: #991b1b; font-weight: bold; margin-bottom: 1rem;">Error de Carga</h2>
             <p id="error-message" style="color: #b91c1c; font-size: 0.875rem;"></p>
             <p style="margin-top: 1rem; font-size: 0.75rem; color: #4b5563;">
-                Tip: Asegúrate de estar usando un servidor (Vite o similar) que soporte .tsx. <br>
-                Si usas Live Server, presiona F12 para ver el error de sintaxis en la consola.
+                Tip: Asegúrate de estar usando un servidor que soporte .tsx o transpile el código. <br>
+                Si usas Live Server básico, el navegador no entenderá archivos .tsx directamente.
             </p>
         </div>
     </div>
