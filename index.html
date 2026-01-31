@@ -33,9 +33,9 @@
     "lucide-react": "https://esm.sh/lucide-react@0.454.0?external=react",
     "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
     "react-router-dom": "https://esm.sh/react-router-dom@6.26.2?external=react,react-dom",
+    "@google/genai": "https://esm.sh/@google/genai@1.30.2",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.39.0"
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
@@ -56,10 +56,20 @@
     <div id="root"></div>
 
     <script>
+        // Advertencia si se abre como archivo directo
         if (window.location.protocol === 'file:') {
             document.getElementById('local-server-warning').style.display = 'flex';
             document.getElementById('local-server-warning').style.alignItems = 'center';
             document.getElementById('local-server-warning').style.justifyContent = 'center';
+        }
+
+        // REGISTRO DEL SERVICE WORKER PARA PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registrado con éxito', reg))
+                    .catch(err => console.log('Error al registrar SW', err));
+            });
         }
     </script>
 
