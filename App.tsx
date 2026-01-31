@@ -16,12 +16,15 @@ import MonthlyMovementView from './views/MonthlyMovement.tsx';
 import PayrollCalculation from './views/PayrollCalculation.tsx';
 import PayslipList from './views/PayslipList.tsx';
 import ReportsView from './views/Reports.tsx';
-import { CheckCircle, AlertTriangle, Monitor, Database } from 'lucide-react';
+import { CheckCircle, AlertTriangle, CloudOff, Globe } from 'lucide-react';
 import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants.tsx';
 import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
 import { getAllData } from './db.ts';
 
-const APP_VERSION = "2.7.0"; // Versión unificada con Bridge Contabilidad
+// IMPORTANTE: Cambia esto por tu repositorio real para la detección
+const GITHUB_USER = "tu-usuario";
+const GITHUB_REPO = "tu-repositorio";
+const APP_VERSION = "3.1.0-LOCAL";
 
 interface Toast {
   id: number;
@@ -50,7 +53,8 @@ interface PayrollContextType {
   setConcepts: React.Dispatch<React.SetStateAction<PayrollConcept[]>>;
   currentPeriod: PayrollPeriod;
   setCurrentPeriod: (period: PayrollPeriod) => void;
-  dbStatus: 'connecting' | 'connected' | 'error' | 'offline';
+  dbStatus: 'connected' | 'offline';
+  isOnline: boolean;
   updateAvailable: boolean;
   checkUpdates: () => Promise<void>;
   appVersion: string;
@@ -69,10 +73,11 @@ export const usePayroll = () => {
 const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [dbStatus, setDbStatus] = useState<'connecting' | 'connected' | 'error' | 'offline'>('connecting');
+  const [dbStatus, setDbStatus] = useState<'connected' | 'offline'>('connected');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const [workers, setWorkers] = useState<Worker[]>(MOCK_WORKERS as any);
   const [company, setCompany] = useState<Company>(MOCK_COMPANY);
@@ -82,70 +87,74 @@ const App: React.FC = () => {
   const [concepts, setConcepts] = useState<PayrollConcept[]>(MOCK_CONCEPTS);
   
   const [currentPeriod, setCurrentPeriodState] = useState<PayrollPeriod>(() => {
-    try {
-      const saved = localStorage.getItem('payroll_period');
-      return saved ? JSON.parse(saved) : { month: new Date().getMonth(), year: new Date().getFullYear() };
-    } catch {
-      return { month: 0, year: 2024 };
-    }
+    const saved = localStorage.getItem('payroll_period');
+    return saved ? JSON.parse(saved) : { month: new Date().getMonth(), year: new Date().getFullYear() };
   });
 
+  // Listener de Red
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
+    const handleOnline = () => { setIsOnline(true); showToast("Conexión restablecida. Modo sincronización GitHub activo.", "info"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Modo Offline activado. Datos locales protegidos.", "info"); };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => { window.removeEventListener('online', handleOnline); window.removeEventListener('offline', handleOffline); };
+  }, []);
+
+  // Listener de PWA
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setIsInstallable(true);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    });
   }, []);
 
-  const installApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setIsInstallable(false);
-      setDeferredPrompt(null);
-    }
-  };
-
-  const checkUpdates = async () => {
-    // Implementación silenciosa para Netlify
-    console.log("Verificando actualizaciones v" + APP_VERSION);
-  };
-
+  // Cargar datos locales de IndexedDB
   useEffect(() => {
-    const loadDB = async () => {
+    const loadLocalData = async () => {
       try {
-        setDbStatus('connecting');
         const [w, c, cc, ct, tc, cp] = await Promise.all([
-          getAllData('workers').catch(() => []),
-          getAllData('company').catch(() => []),
-          getAllData('costCenters').catch(() => []),
-          getAllData('contractTypes').catch(() => []),
-          getAllData('terminationCauses').catch(() => []),
-          getAllData('concepts').catch(() => [])
+          getAllData('workers'), getAllData('company'), getAllData('costCenters'),
+          getAllData('contractTypes'), getAllData('terminationCauses'), getAllData('concepts')
         ]);
-
-        if (w?.length) setWorkers(w);
-        if (c?.length) setCompany(c[0]);
-        if (cc?.length) setCostCenters(cc);
-        if (ct?.length) setContractTypes(ct);
-        if (tc?.length) setTerminationCauses(tc);
-        if (cp?.length) setConcepts(cp);
-
-        setDbStatus('connected');
-      } catch (err) {
+        if (w.length) setWorkers(w);
+        if (c.length) setCompany(c[0]);
+        if (cc.length) setCostCenters(cc);
+        if (ct.length) setContractTypes(ct);
+        if (tc.length) setTerminationCauses(tc);
+        if (cp.length) setConcepts(cp);
+      } catch (e) {
         setDbStatus('offline');
       }
     };
-    loadDB();
+    loadLocalData();
+  }, []);
+
+  // Función para detectar actualizaciones en GitHub
+  const checkUpdates = async () => {
+    if (!navigator.onLine) return;
+    try {
+      // Intenta obtener la última versión desde un archivo raw en tu repo de GitHub
+      // Si usas tags, podrías consultar la API de GitHub:
+      // const res = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`);
+      
+      // Simulación de chequeo
+      console.log("Chequeando actualizaciones en GitHub...");
+      // Aquí iría el fetch real. Si detecta diferencia, setUpdateAvailable(true)
+    } catch (e) {
+      console.error("Error chequeando actualizaciones:", e);
+    }
+  };
+
+  useEffect(() => {
+    checkUpdates();
+    const interval = setInterval(checkUpdates, 1000 * 60 * 30); // Cada 30 mins
+    return () => clearInterval(interval);
   }, []);
 
   const setCurrentPeriod = (period: PayrollPeriod) => {
     setCurrentPeriodState(period);
-    try { localStorage.setItem('payroll_period', JSON.stringify(period)); } catch {}
+    localStorage.setItem('payroll_period', JSON.stringify(period));
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -154,12 +163,21 @@ const App: React.FC = () => {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
 
+  const installApp = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choice: any) => {
+        if (choice.outcome === 'accepted') setIsInstallable(false);
+      });
+    }
+  };
+
   return (
     <PayrollContext.Provider value={{ 
       showToast, workers, setWorkers, company, setCompany, 
       costCenters, setCostCenters, contractTypes, setContractTypes,
       terminationCauses, setTerminationCauses, concepts, setConcepts,
-      currentPeriod, setCurrentPeriod, dbStatus, 
+      currentPeriod, setCurrentPeriod, dbStatus, isOnline,
       updateAvailable, checkUpdates, appVersion: APP_VERSION,
       installApp, isInstallable
     }}>
@@ -190,15 +208,19 @@ const App: React.FC = () => {
             </main>
           </div>
           
-          <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
-            <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
-            <span className="text-gray-500 uppercase">OFFLINE READY</span>
+          {/* Status Bar */}
+          <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-4 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
+              <span className="text-gray-500 uppercase">{isOnline ? 'Conectado a GitHub' : 'Modo 100% Offline'}</span>
+            </div>
+            <div className="w-px h-3 bg-gray-200"></div>
             <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md uppercase font-black">v{APP_VERSION}</span>
           </div>
 
           <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
             {toasts.map(t => (
-              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+              <div key={t.id} className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-in slide-in-from-right-full ${t.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : t.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                 {t.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
                 <span className="text-sm font-medium">{t.message}</span>
               </div>

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MENU_ITEMS } from '../constants.tsx';
-import { ChevronDown, ChevronRight, Menu, Download, Github, RefreshCw, Monitor } from 'lucide-react';
+import { ChevronDown, ChevronRight, Menu, Download, Github, RefreshCw, Monitor, CloudOff, Wifi } from 'lucide-react';
 import { usePayroll } from '../App.tsx';
 
 interface SidebarProps {
@@ -12,7 +12,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
   const location = useLocation();
-  const { updateAvailable, checkUpdates, appVersion, isInstallable, installApp } = usePayroll();
+  const { updateAvailable, checkUpdates, appVersion, isInstallable, installApp, isOnline } = usePayroll();
   const [expandedItems, setExpandedItems] = useState<string[]>(['archivo', 'movimientos']);
   const [isChecking, setIsChecking] = useState(false);
 
@@ -23,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
   };
 
   const handleManualCheck = async () => {
+    if (!isOnline) return;
     setIsChecking(true);
     await checkUpdates();
     setTimeout(() => setIsChecking(false), 1000);
@@ -77,29 +78,39 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
         </nav>
 
         <div className="p-4 border-t border-gray-100 space-y-3 shrink-0">
+          {!isOnline && isOpen && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-bold">
+              <CloudOff size={14} /> TRABAJANDO OFFLINE
+            </div>
+          )}
+
           {isInstallable && isOpen && (
             <button onClick={installApp}
               className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-lg text-xs font-bold transition-all shadow-lg">
-              <Monitor size={16} /> Instalar en Escritorio
+              <Monitor size={16} /> Instalar App
             </button>
           )}
 
           {updateAvailable && isOpen && (
-            <a href="https://github.com/virmaus/Remuneraciones" target="_blank" rel="noopener noreferrer"
+            <button onClick={() => window.location.reload()}
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-lg text-xs font-bold transition-all shadow-lg animate-bounce">
-              <Download size={16} /> Bajar Nueva Versión
-            </a>
+              <Download size={16} /> Actualizar de GitHub
+            </button>
           )}
           
           <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-gray-400 uppercase">Versión Actual</span>
-              <button onClick={handleManualCheck} disabled={isChecking} className="text-gray-400 hover:text-emerald-600">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Estado Sincro</span>
+              <button 
+                onClick={handleManualCheck} 
+                disabled={isChecking || !isOnline} 
+                className={`text-gray-400 hover:text-emerald-600 ${!isOnline ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
                 <RefreshCw size={12} className={isChecking ? 'animate-spin' : ''} />
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <Github size={14} className="text-gray-400" />
+              <Github size={14} className={isOnline ? 'text-emerald-500' : 'text-gray-400'} />
               <span className="text-xs font-bold text-gray-700">v{appVersion}</span>
             </div>
           </div>

@@ -1,12 +1,10 @@
-
 {
-  "name": "Contador Pro Analytics - Remuneraciones",
-  "short_name": "Remuneraciones",
-  "description": "Sistema de Gestión de Remuneraciones Digital con Base de Datos Local.",
-  "start_url": "./index.html",
+  "name": "Remuneraciones Pro Local",
+  "short_name": "RemunLocal",
+  "description": "Sistema de Gestión de Remuneraciones Digital - Funcionamiento Local Autónomo.",
+  "start_url": ".",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#059669",
   "icons": [
@@ -23,6 +21,7 @@
       "purpose": "maskable"
     }
   ],
+  "categories": ["business", "productivity", "finance"],
   "screenshots": [
     {
       "src": "https://raw.githubusercontent.com/virmaus/Remuneraciones/main/screenshot.png",
