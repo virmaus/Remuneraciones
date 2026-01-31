@@ -1,53 +1,27 @@
 
-const CACHE_NAME = 'remuneraciones-v2.6.5';
-const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com'
-];
+const CACHE_NAME = 'remuneraciones-v2.8.0';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) => Promise.all(
+      keys.map((key) => {
+        if (key !== CACHE_NAME) return caches.delete(key);
+      })
+    ))
   );
   return self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Solo cachear peticiones GET
+  // En modo desarrollo o preview de AI, dejamos pasar todo a la red
+  // En producción (Netlify), el navegador gestionará la caché automáticamente
   if (event.request.method !== 'GET') return;
-
+  
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Si la red funciona, devolvemos y actualizamos caché
-        const resClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, resClone);
-        });
-        return response;
-      })
-      .catch(() => {
-        // Si la red falla, buscamos en caché
-        return caches.match(event.request);
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });

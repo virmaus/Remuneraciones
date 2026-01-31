@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contador Pro - Sistema de Remuneraciones</title>
+    <title>Contador Pro - Remuneraciones</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#059669">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,16 +12,6 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f9fafb; margin: 0; padding: 0; }
         #root { min-height: 100vh; }
-        #local-server-warning {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: #fff;
-            z-index: 10000;
-            padding: 40px;
-            text-align: center;
-            color: #374151;
-        }
     </style>
 <script type="importmap">
 {
@@ -41,39 +31,24 @@
 </script>
 </head>
 <body>
-    <div id="local-server-warning">
-        <div style="max-width: 500px; margin: 0 auto; border: 2px solid #e5e7eb; padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-            <div style="font-size: 50px; margin-bottom: 20px;">🚀</div>
-            <h2 style="font-weight: 800; font-size: 20px; margin-bottom: 10px;">Modo Local Detectado</h2>
-            <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">Para una experiencia óptima y permitir la instalación en el escritorio, usa un servidor local o sube la app a Netlify/Vercel.</p>
-            <div style="background: #f3f4f6; padding: 15px; border-radius: 10px; margin: 20px 0; font-family: monospace; font-size: 12px; text-align: left;">
-                <b>Sugerencia:</b> Ejecuta <b>npx serve .</b> en esta carpeta.
-            </div>
-            <button onclick="document.getElementById('local-server-warning').style.display='none'" style="background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Entendido</button>
-        </div>
-    </div>
-
     <div id="root"></div>
 
     <script>
-        // Advertencia si se abre como archivo directo
-        if (window.location.protocol === 'file:') {
-            document.getElementById('local-server-warning').style.display = 'flex';
-            document.getElementById('local-server-warning').style.alignItems = 'center';
-            document.getElementById('local-server-warning').style.justifyContent = 'center';
-        }
-
-        // REGISTRO DEL SERVICE WORKER PARA PWA
+        // Manejo silencioso del registro del SW
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
+                // Usamos una ruta relativa estricta para Netlify
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW registrado con éxito', reg))
-                    .catch(err => console.log('Error al registrar SW', err));
+                    .then(reg => console.log('PWA Lista para instalación'))
+                    .catch(err => {
+                        console.warn('Registro de SW omitido en este entorno (es normal en modo preview):', err.message);
+                    });
             });
         }
     </script>
 
     <script type="module">
+        // Importación directa del archivo TSX para evitar problemas de resolución de rutas
         import './index.tsx';
     </script>
 </body>

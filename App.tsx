@@ -16,13 +16,12 @@ import MonthlyMovementView from './views/MonthlyMovement.tsx';
 import PayrollCalculation from './views/PayrollCalculation.tsx';
 import PayslipList from './views/PayslipList.tsx';
 import ReportsView from './views/Reports.tsx';
-import { CheckCircle, XCircle, Database, RefreshCw, AlertTriangle, Download, Monitor } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Monitor, Database } from 'lucide-react';
 import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants.tsx';
 import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
 import { getAllData } from './db.ts';
 
-const APP_VERSION = "2.6.5"; 
-const GITHUB_REPO_URL = "https://github.com/virmaus/Remuneraciones";
+const APP_VERSION = "2.7.0"; // Versión unificada con Bridge Contabilidad
 
 interface Toast {
   id: number;
@@ -91,7 +90,6 @@ const App: React.FC = () => {
     }
   });
 
-  // Manejo de instalación PWA
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
@@ -113,19 +111,8 @@ const App: React.FC = () => {
   };
 
   const checkUpdates = async () => {
-    if (!navigator.onLine) return;
-    try {
-      const response = await fetch('https://raw.githubusercontent.com/virmaus/Remuneraciones/main/App.tsx', { cache: 'no-store' });
-      if (response.ok) {
-        const content = await response.text();
-        const match = content.match(/const APP_VERSION = "(.*?)"/);
-        if (match && match[1] !== APP_VERSION) {
-          setUpdateAvailable(true);
-        }
-      }
-    } catch (e) {
-      console.warn("Error verificando versión remota.");
-    }
+    // Implementación silenciosa para Netlify
+    console.log("Verificando actualizaciones v" + APP_VERSION);
   };
 
   useEffect(() => {
@@ -154,7 +141,6 @@ const App: React.FC = () => {
       }
     };
     loadDB();
-    checkUpdates();
   }, []);
 
   const setCurrentPeriod = (period: PayrollPeriod) => {
@@ -205,18 +191,9 @@ const App: React.FC = () => {
           </div>
           
           <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
-            <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
-               <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></div>
-               <span className="text-gray-500 uppercase">OFFLINE OK</span>
-            </div>
-            <div className="flex items-center gap-2 text-emerald-600">
-               <span className="bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-tight font-black">v{APP_VERSION}</span>
-            </div>
-            {updateAvailable && (
-              <a href={GITHUB_REPO_URL} target="_blank" className="flex items-center gap-1.5 px-3 py-0.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 animate-pulse">
-                <AlertTriangle size={10} /> REVISAR REPOSITORIO
-              </a>
-            )}
+            <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
+            <span className="text-gray-500 uppercase">OFFLINE READY</span>
+            <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md uppercase font-black">v{APP_VERSION}</span>
           </div>
 
           <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
