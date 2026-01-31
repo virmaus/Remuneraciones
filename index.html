@@ -24,8 +24,8 @@
     "recharts": "https://esm.sh/recharts@2.12.7?external=react,react-dom",
     "react-router-dom": "https://esm.sh/react-router-dom@6.26.2?external=react,react-dom",
     "@google/genai": "https://esm.sh/@google/genai@1.30.2",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
@@ -34,18 +34,17 @@
     <div id="root"></div>
 
     <script>
-        // Registro del Service Worker optimizado para Netlify
-        if ('serviceWorker' in navigator) {
+        // Manejo del Service Worker: Solo se registra si el origen coincide (evita el error de preview)
+        if ('serviceWorker' in navigator && window.location.origin.includes('netlify') || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA: Service Worker registrado'))
-                    .catch(err => console.warn('PWA: Error en el registro del SW:', err));
+                    .then(reg => console.log('PWA: Activa'))
+                    .catch(err => console.debug('SW omitido:', err.message));
             });
         }
     </script>
 
     <script type="module">
-        // Cargamos el punto de entrada de la aplicación
         import './index.tsx';
     </script>
 </body>
