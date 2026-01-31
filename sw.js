@@ -1,4 +1,4 @@
-const CACHE_NAME = 'remun-offline-v4.3.2';
+const CACHE_NAME = 'remun-offline-v4.3.5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -28,24 +28,29 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Solo procesar peticiones GET
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
   
-  // IMPORTANTE: Solo interceptar peticiones http o https
+  // IMPORTANTE: Solo interceptar peticiones http o https. 
+  // Ignora protocolos chrome-extension:// que causan errores de put en caché.
   if (!url.protocol.startsWith('http')) return;
 
-  // Evitar interceptar recursos de extensiones o scripts de terceros con problemas de CSP conocidos
-  if (url.pathname.includes('chrome-extension') || url.hostname.includes('excalidraw')) return;
+  // Ignorar dominios de terceros que están fallando por CSP (ej: excalidraw de extensiones)
+  if (url.hostname.includes('excalidraw')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Solo cachear si la respuesta es válida y de nuestro propio origen (evita problemas de CORS opacos)
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+        // Solo cachear respuestas válidas de nuestro origen o de CDNs de confianza
+        const isSelf = url.origin === self.location.origin;
+        const isCdn = url.hostname.includes('esm.sh') || url.hostname.includes('tailwindcss.com');
+        
+        if (networkResponse && networkResponse.status === 200 && (isSelf || isCdn)) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, responseToCache).catch(e => console.debug('Cache put failed', e));
           });
         }
         return networkResponse;
