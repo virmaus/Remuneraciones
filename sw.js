@@ -1,4 +1,4 @@
-const CACHE_NAME = 'remun-offline-v4.3.1';
+const CACHE_NAME = 'remun-offline-v4.3.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -30,14 +30,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // IMPORTANTE: Solo interceptar peticiones http o https para evitar errores con extensiones de Chrome
   const url = new URL(event.request.url);
+  
+  // IMPORTANTE: Solo interceptar peticiones http o https
   if (!url.protocol.startsWith('http')) return;
+
+  // Evitar interceptar recursos de extensiones o scripts de terceros con problemas de CSP conocidos
+  if (url.pathname.includes('chrome-extension') || url.hostname.includes('excalidraw')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
+        // Solo cachear si la respuesta es válida y de nuestro propio origen (evita problemas de CORS opacos)
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
