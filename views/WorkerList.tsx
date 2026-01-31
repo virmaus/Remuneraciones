@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { Search, Plus, Edit, Trash2, Printer } from 'lucide-react';
-import { usePayroll } from '../App';
-import WorkerModal from './WorkerModal';
-import { Worker } from '../types';
+import { usePayroll } from '../App.tsx';
+import WorkerModal from './WorkerModal.tsx';
+import { Worker } from '../types.ts';
 
 const WorkerList: React.FC = () => {
   const { showToast, workers, setWorkers, costCenters } = usePayroll();

@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { MENU_ITEMS } from '../constants.tsx';
-import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
+import { ChevronDown, ChevronRight, Menu, MonitorDown } from 'lucide-react';
+import { usePayroll } from '../App.tsx';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
   const location = useLocation();
+  const { isInstallable, installApp } = usePayroll();
   const [expandedItems, setExpandedItems] = useState<string[]>(['archivo', 'movimientos']);
 
   const toggleExpand = (id: string) => {
@@ -33,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
         ${isOpen ? 'w-64' : 'w-0 lg:w-20'} 
         bg-white border-r border-gray-200 transition-all duration-300 flex flex-col z-40 h-full overflow-hidden
       `}>
-        <div className="p-6 flex items-center gap-3">
+        <div className="p-6 flex items-center gap-3 shrink-0">
           <div className="w-8 h-8 bg-emerald-600 rounded flex items-center justify-center text-white font-bold shrink-0">
             T
           </div>
@@ -93,7 +95,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggle }) => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 space-y-3 shrink-0">
+          {isInstallable && isOpen && (
+            <button 
+              onClick={installApp}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20 mb-2"
+            >
+              <MonitorDown size={16} />
+              Instalar Localmente
+            </button>
+          )}
+          
           <div className="bg-emerald-600 p-3 rounded-lg text-white text-center">
             <p className="text-xs opacity-80 uppercase font-semibold">Soporte 24/7</p>
             <p className="text-sm font-bold">Remuneraciones Digital</p>

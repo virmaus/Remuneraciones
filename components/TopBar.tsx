@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { usePayroll } from '../App';
+import { usePayroll } from '../App.tsx';
 import { Bell, User, Calendar, ChevronDown, Check } from 'lucide-react';
 
 const MONTHS = [

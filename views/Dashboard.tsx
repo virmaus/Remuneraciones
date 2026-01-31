@@ -2,7 +2,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { DollarSign, Users, Clock, AlertCircle } from 'lucide-react';
-import { usePayroll } from '../App';
+import { usePayroll } from '../App.tsx';
 
 const data = [
   { name: 'Ene', total: 4500000 },

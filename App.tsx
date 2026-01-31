@@ -1,5 +1,5 @@
 
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, createContext, useContext, useEffect, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar.tsx';
 import TopBar from './components/TopBar.tsx';
@@ -17,12 +17,12 @@ import PayrollCalculation from './views/PayrollCalculation.tsx';
 import PayslipList from './views/PayslipList.tsx';
 import ReportsView from './views/Reports.tsx';
 import AIHelper from './components/AIHelper.tsx';
-import { CheckCircle, XCircle, Info, Database, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, Database, RefreshCw, MonitorDown } from 'lucide-react';
 import { MOCK_WORKERS, MOCK_COMPANY, MOCK_COST_CENTERS, MOCK_CONTRACT_TYPES, MOCK_TERMINATION_CAUSES, MOCK_CONCEPTS } from './constants.tsx';
 import { Worker, Company, CostCenter, ContractType, TerminationCause, PayrollConcept } from './types.ts';
-import { getAllData, saveData } from './db.ts';
+import { getAllData } from './db.ts';
 
-const APP_VERSION = "2.2.0-STABLE";
+const APP_VERSION = "2.4.0-STABLE";
 
 interface Toast {
   id: number;
@@ -52,6 +52,8 @@ interface PayrollContextType {
   currentPeriod: PayrollPeriod;
   setCurrentPeriod: (period: PayrollPeriod) => void;
   dbStatus: 'connecting' | 'connected' | 'error' | 'offline';
+  installApp: () => void;
+  isInstallable: boolean;
 }
 
 const PayrollContext = createContext<PayrollContextType | undefined>(undefined);
@@ -66,6 +68,8 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [dbStatus, setDbStatus] = useState<'connecting' | 'connected' | 'error' | 'offline'>('connecting');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
 
   const [workers, setWorkers] = useState<Worker[]>(MOCK_WORKERS as any);
   const [company, setCompany] = useState<Company>(MOCK_COMPANY);
@@ -82,6 +86,26 @@ const App: React.FC = () => {
       return { month: 7, year: 2023 };
     }
   });
+
+  useEffect(() => {
+    const installHandler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+    window.addEventListener('beforeinstallprompt', installHandler);
+    return () => window.removeEventListener('beforeinstallprompt', installHandler);
+  }, []);
+
+  const installApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    }
+  };
 
   useEffect(() => {
     const loadDB = async () => {
@@ -105,7 +129,6 @@ const App: React.FC = () => {
 
         setDbStatus('connected');
       } catch (err) {
-        console.warn('Iniciando en modo memoria (sin DB local)');
         setDbStatus('offline');
       }
     };
@@ -128,7 +151,7 @@ const App: React.FC = () => {
       showToast, workers, setWorkers, company, setCompany, 
       costCenters, setCostCenters, contractTypes, setContractTypes,
       terminationCauses, setTerminationCauses, concepts, setConcepts,
-      currentPeriod, setCurrentPeriod, dbStatus
+      currentPeriod, setCurrentPeriod, dbStatus, installApp, isInstallable
     }}>
       <Router>
         <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -137,6 +160,23 @@ const App: React.FC = () => {
             <TopBar />
             <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
               <div className="max-w-7xl mx-auto">
+                {isInstallable && (
+                  <div className="mb-6 p-4 bg-blue-600 rounded-xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center gap-3">
+                      <MonitorDown size={24} />
+                      <div>
+                        <h4 className="font-bold">Instalar Transtecnia Remuneraciones</h4>
+                        <p className="text-sm opacity-90">Ejecuta la aplicación de forma nativa en tu computadora para mayor rapidez.</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={installApp}
+                      className="whitespace-nowrap bg-white text-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors"
+                    >
+                      Instalar Ahora
+                    </button>
+                  </div>
+                )}
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/archivo/empresa" element={<CompanyForm />} />
@@ -158,11 +198,12 @@ const App: React.FC = () => {
           </div>
           <AIHelper />
           
+          {/* Status Bar */}
           <div className="fixed bottom-4 left-6 z-[60] flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-xl text-[10px] font-bold tracking-wider">
             <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
                <div className={`w-2 h-2 rounded-full ${dbStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></div>
                <span className="text-gray-500 flex items-center gap-1 uppercase">
-                 <Database size={10}/> {dbStatus === 'offline' ? 'CACHE RAM' : 'DB LOCAL ACTIVA'}
+                 <Database size={10}/> {dbStatus === 'offline' ? 'ESTADO: MEMORIA' : 'ESTADO: INDEXEDDB'}
                </span>
             </div>
             <div className="flex items-center gap-2 text-emerald-600">
