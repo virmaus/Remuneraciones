@@ -15,11 +15,11 @@
         #root { min-height: 100vh; }
         #error-display { 
             display: none; position: fixed; inset: 0; background: #fff; z-index: 9999;
-            padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 2rem; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; font-family: monospace;
         }
         .error-card { background: #fee2e2; border: 1px solid #ef4444; padding: 1.5rem; border-radius: 0.5rem; max-width: 600px; }
-        @media (display-mode: standalone) { .no-standalone { display: none; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 <script type="importmap">
 {
@@ -39,14 +39,12 @@
 </script>
 </head>
 <body>
-    <!-- Pantalla de Error (Solo se muestra si falla la carga) -->
-    <div id="error-display" style="display: none;">
+    <div id="error-display">
         <div class="error-card">
-            <h2 style="color: #991b1b; font-weight: bold; margin-bottom: 1rem;">Error de Carga</h2>
+            <h2 style="color: #991b1b; font-weight: bold; margin-bottom: 1rem;">Error de Aplicación</h2>
             <p id="error-message" style="color: #b91c1c; font-size: 0.875rem;"></p>
             <p style="margin-top: 1rem; font-size: 0.75rem; color: #4b5563;">
-                Tip: Asegúrate de estar usando un servidor que soporte .tsx o transpile el código. <br>
-                Si usas Live Server básico, el navegador no entenderá archivos .tsx directamente.
+                Tip: Abre la consola (F12) para ver más detalles. Si usas 'npx serve', asegúrate de que el navegador soporte módulos ESM.
             </p>
         </div>
     </div>
@@ -55,33 +53,28 @@
         <div style="display: flex; height: 100vh; align-items: center; justify-content: center; color: #6b7280;">
             <div style="text-align: center;">
                 <div style="width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #059669; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
-                <p style="font-size: 0.875rem; font-weight: 500;">Iniciando Sistema de Remuneraciones...</p>
+                <p style="font-size: 0.875rem; font-weight: 500;">Cargando Módulos Transtecnia...</p>
             </div>
         </div>
     </div>
 
-    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-
     <script>
-        // Capturador de errores globales para el usuario
         window.onerror = function(msg, url, line, col, error) {
             const display = document.getElementById('error-display');
             const message = document.getElementById('error-message');
-            display.style.display = 'flex';
-            message.textContent = msg + (line ? ' (Línea ' + line + ')' : '');
+            if (display && message) {
+                display.style.display = 'flex';
+                message.textContent = msg + (line ? ' (Línea ' + line + ')' : '');
+            }
             return false;
         };
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(() => {});
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log("SW error:", err));
             });
         }
     </script>
-
-    <script type="module">
-        // Intentamos cargar la aplicación
-        import './index.tsx';
-    </script>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

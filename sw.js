@@ -1,10 +1,8 @@
-
-const CACHE_NAME = 'remun-offline-v4.3.0';
+const CACHE_NAME = 'remun-offline-v4.3.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './manifest.json',
-  'https://cdn.tailwindcss.com'
+  './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -29,14 +27,16 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Estrategia: Stale-While-Revalidate para archivos locales, Cache-First para CDNs
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // IMPORTANTE: Solo interceptar peticiones http o https para evitar errores con extensiones de Chrome
+  const url = new URL(event.request.url);
+  if (!url.protocol.startsWith('http')) return;
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Actualizamos caché solo si es una respuesta exitosa
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -45,7 +45,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Fallback offline para navegación
         if (event.request.mode === 'navigate') {
           return caches.match('./index.html');
         }
