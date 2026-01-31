@@ -13,10 +13,13 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f9fafb; margin: 0; padding: 0; }
         #root { min-height: 100vh; }
-        /* Optimizaciones para modo instalado */
-        @media (display-mode: standalone) {
-            .no-standalone { display: none; }
+        #error-display { 
+            display: none; position: fixed; inset: 0; background: #fff; z-index: 9999;
+            padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; font-family: monospace;
         }
+        .error-card { background: #fee2e2; border: 1px solid #ef4444; padding: 1.5rem; rounded: 0.5rem; max-width: 600px; }
+        @media (display-mode: standalone) { .no-standalone { display: none; } }
     </style>
 <script type="importmap">
 {
@@ -36,29 +39,48 @@
 </script>
 </head>
 <body>
-    <div id="root"></div>
+    <!-- Pantalla de Error (Solo se muestra si falla la carga) -->
+    <div id="error-display" style="display: none;">
+        <div class="error-card">
+            <h2 style="color: #991b1b; font-weight: bold; margin-bottom: 1rem;">Error de Carga</h2>
+            <p id="error-message" style="color: #b91c1c; font-size: 0.875rem;"></p>
+            <p style="margin-top: 1rem; font-size: 0.75rem; color: #4b5563;">
+                Tip: Asegúrate de estar usando un servidor (Vite o similar) que soporte .tsx. <br>
+                Si usas Live Server, presiona F12 para ver el error de sintaxis en la consola.
+            </p>
+        </div>
+    </div>
+
+    <div id="root">
+        <div style="display: flex; height: 100vh; align-items: center; justify-content: center; color: #6b7280;">
+            <div style="text-align: center;">
+                <div style="width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #059669; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                <p style="font-size: 0.875rem; font-weight: 500;">Iniciando Sistema de Remuneraciones...</p>
+            </div>
+        </div>
+    </div>
+
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
 
     <script>
-        /**
-         * Registro de Service Worker simplificado.
-         * Se elimina el constructor de URL complejo que causaba 'Invalid URL' en algunos entornos.
-         * Se usa una ruta relativa directa y manejo de errores silencioso para entornos de previsualización.
-         */
+        // Capturador de errores globales para el usuario
+        window.onerror = function(msg, url, line, col, error) {
+            const display = document.getElementById('error-display');
+            const message = document.getElementById('error-message');
+            display.style.display = 'flex';
+            message.textContent = msg + (line ? ' (Línea ' + line + ')' : '');
+            return false;
+        };
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => {
-                        console.log('PWA: Modo Offline listo');
-                    })
-                    .catch(err => {
-                        // Silenciamos el error en previsualización de sandbox para no ensuciar la consola
-                        console.debug('PWA: No se pudo registrar en este dominio (esperado en previsualización cloud).');
-                    });
+                navigator.serviceWorker.register('sw.js').catch(() => {});
             });
         }
     </script>
 
     <script type="module">
+        // Intentamos cargar la aplicación
         import './index.tsx';
     </script>
 </body>
