@@ -14,11 +14,18 @@ const AIHelper: React.FC = () => {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    // Verificación de API KEY para evitar crash
-    const apiKey = process.env.API_KEY;
+    // VERIFICACIÓN SEGURA DE API KEY
+    let apiKey = '';
+    try {
+      // @ts-ignore
+      apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    } catch (e) {
+      apiKey = '';
+    }
+
     if (!apiKey) {
       setMessages(prev => [...prev, { role: 'user', text: input }]);
-      setMessages(prev => [...prev, { role: 'ai', text: 'El asistente IA no está configurado (Falta API KEY). Sin embargo, el resto de la aplicación funciona normalmente.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'El asistente IA no está configurado (Llave de API ausente). Por favor, contacta a soporte para habilitar esta función.' }]);
       setInput('');
       return;
     }
